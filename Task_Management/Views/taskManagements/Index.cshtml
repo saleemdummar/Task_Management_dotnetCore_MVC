@@ -1,0 +1,102 @@
+﻿@model IEnumerable<Task_Management.Models.taskManagement>
+<h1>Tasks</h1>
+<p>
+    <a asp-action="Create" class="btn btn-primary">Create New</a>
+</p>
+<div class="container1">
+    <div class="column left">
+        <h2>In Progress Tasks</h2>
+        <hr />
+        <ul id="progress-list" class="sortable-list ulheight">
+            @foreach (var item in Model.Where(u => u.Status == "Progress").OrderBy(u => u.Position))
+            {
+                <li draggable="true" id="@item.TaskID">
+                    <div class="task-details">
+                        <div class="left-title">
+                            <h3 td> @item.Title </h3>
+                            <div class="icons">
+                                <a asp-action="Edit" asp-route-id="@item.TaskID" class="btn edit-btn btn-outline-dark btn-sm"><i class="bi bi-pencil-square"></i></a> |
+                                <a asp-action="Details" asp-route-id="@item.TaskID" class="btn details-btn btn-outline-info btn-sm"><i class="bi bi-ticket-detailed"></i></a> |
+                                <a asp-action="Delete" asp-route-id="@item.TaskID" class="btn delete-btn btn-outline-danger btn-sm"><i class="bi bi-x"></i></a>
+                            </div>
+                        </div>
+                        <p td> @item.Description </p>
+                    </div>
+                </li>
+            }
+        </ul>
+    </div>
+    <div class="column">
+        <h2>Completed Tasks</h2>
+        <hr />
+        <ul id="completed-list" class="sortable-list  ulheight" >
+            @foreach (var item in Model.Where(u => u.Status == "Completed").OrderBy(u => u.Position))
+            {
+                <li draggable="true" id="@item.TaskID">
+                    <div class="task-details">
+                        <div class="left-title">
+                            <h3 td> @item.Title </h3>
+                            <div class="icons">
+                                <a asp-action="Edit" asp-route-id="@item.TaskID" class="btn edit-btn btn-outline-dark btn-sm"><i class="bi bi-pencil-square"></i></a> |
+                                <a asp-action="Details" asp-route-id="@item.TaskID" class="btn details-btn btn-outline-info btn-sm"><i class="bi bi-ticket-detailed"></i></a> |
+                                <a asp-action="Delete" asp-route-id="@item.TaskID" class="btn delete-btn btn-outline-danger btn-sm"><i class="bi bi-x"></i></a>
+                            </div>
+                        </div>
+                        <p td> @item.Description </p>
+                    </div>
+                </li>
+            }
+        </ul>
+    </div>
+</div>
+@section scripts {
+    <script>
+        $(document).ready(function () {
+            // Enable drag and drop functionality for progress to completed
+            $('#progress-list, #completed-list').on('dragstart', 'li', function (event) {
+                event.originalEvent.dataTransfer.setData('text/plain', event.target.id);
+            });
+
+            $('ul').on('dragover', function (event) {
+                event.preventDefault();
+            });
+
+            // Handle drop from progress to completed
+            $('#completed-list').on('drop', function (event) {
+                handleDrop(event, 'Completed');
+            });
+
+            // Handle drop from completed to progress
+            $('#progress-list').on('drop', function (event) {
+                handleDrop(event, 'Progress');
+            });
+
+            function handleDrop(event, status) {
+                var data = event.originalEvent.dataTransfer.getData('text');
+                var draggedElement = $('#' + data);
+                var targetElement = $(event.target).closest('ul');
+
+                if (targetElement.attr('id') !== draggedElement.closest('ul').attr('id')) {
+                    draggedElement.detach().appendTo(targetElement);
+
+                    // Get task ID
+                    var taskId = draggedElement.attr('id');
+                    // Make AJAX call to update the database
+                    $.ajax({
+                        url: "/taskManagements/UpdateTaskOrderAndStatus",
+                        type: 'POST',
+                        data: { taskIds: [taskId], status: status },
+                        success: function (response) {
+                            console.log('Database updated successfully.');
+                        },
+                        error: function (xhr, status, error) {
+                            console.error('Error updating database:', error);
+                        }
+                    });
+                }
+
+                event.preventDefault();
+            }
+        });
+    </script>
+}
